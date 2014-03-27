@@ -40,25 +40,19 @@ function pollAssembly(assemblyUrl, triesLeft){
 }
 
 function checkAssembly(assemblyUrl, callback){
-  http.get(assemblyUrl, function(res){
-    var body = '';
-    res.on('data', function(chunk){
-      body += chunk;
-    });
-    res.on('end', function(){
-      var response = JSON.parse(body);
-      if(response.ok){
-        if(response.ok == 'ASSEMBLY_COMPLETED'){
-          callback(null, response.assembly_id);
-        }
-        if(response.ok == 'ASSEMBLY_EXECUTING'){
-          callback(null);
-        }
+  request.get(assemblyUrl, function(err, res, body){
+    var response = JSON.parse(body);
+    if(response.ok){
+      if(response.ok == 'ASSEMBLY_COMPLETED'){
+        callback(null, response.assembly_id);
       }
-      else{
-        callback('error');
+      if(response.ok == 'ASSEMBLY_EXECUTING'){
+        callback(null);
       }
-    });
+    }
+    else{
+      callback('error');
+    }
   });
 }
 
