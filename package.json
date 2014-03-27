@@ -1,0 +1,9 @@
+{
+  "author": "@re5et",
+  "name": "node-transloadit-development_notify_url_proxy",
+  "version": "0.0.1",
+  "dependencies": {
+    "http-proxy": "1.0.3",
+    "request": "2.34.0"
+  }
+}
