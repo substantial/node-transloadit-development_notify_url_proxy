@@ -1,9 +1,10 @@
 var http = require('http');
 var httpProxy = require('http-proxy');
 var request = require('request');
+var configuration = require('./configuration')
 
 var proxy = httpProxy.createProxyServer({
-  target: 'https://api2.transloadit.com/assemblies/'
+  target: configuration.proxyTarget
 });
 
 http.createServer(function(req, res) {
@@ -18,7 +19,7 @@ http.createServer(function(req, res) {
       pollAssembly(assemblyUrl);
     });
   });
-}).listen(8888);
+}).listen(configuration.proxyPort);
 
 function pollAssembly(assemblyUrl, triesLeft){
   if(triesLeft < 1){
@@ -28,12 +29,12 @@ function pollAssembly(assemblyUrl, triesLeft){
     triesLeft = 10;
   }
   setTimeout(function(){
-    checkAssembly(assemblyUrl, function(err, assemblyId){
-      if(!assemblyId){
+    checkAssembly(assemblyUrl, function(err, response){
+      if(!response){
         pollAssembly(assemblyUrl, --triesLeft);
       }
       else{
-        notify(assemblyId);
+        notify(response);
       }
     });
   }, 1000);
@@ -44,7 +45,7 @@ function checkAssembly(assemblyUrl, callback){
     var response = JSON.parse(body);
     if(response.ok){
       if(response.ok == 'ASSEMBLY_COMPLETED'){
-        callback(null, response.assembly_id);
+        callback(null, response);
       }
       if(response.ok == 'ASSEMBLY_EXECUTING'){
         callback(null);
@@ -56,10 +57,10 @@ function checkAssembly(assemblyUrl, callback){
   });
 }
 
-function notify(assemblyId){
-  request.post('http://127.0.0.1:9999/transloadit', {
+function notify(response){
+  request.post(configuration.notifyUrl, {
     form: {
-      transloadit: '{"assembly_id": "'+assemblyId+'"}'
+      transloadit: JSON.stringify(response)
     }
   });
 }
