@@ -1,3 +1,4 @@
+require('rconsole')
 var http = require('http');
 var httpProxy = require('http-proxy');
 var request = require('request');
@@ -16,13 +17,17 @@ http.createServer(function(req, res) {
     });
     res.on('end', function(){
       assemblyUrl = JSON.parse(body).assembly_url;
+      console.debug("received proxy response, polling assemblyUrl: %s", assemblyUrl)
       pollAssembly(assemblyUrl);
     });
   });
 }).listen(configuration.proxyPort);
 
+console.debug("listening on %d, forwarding to %s, notifying %s", configuration.proxyPort, configuration.proxyTarget, configuration.notifyUrl)
+
 function pollAssembly(assemblyUrl, triesLeft){
   if(triesLeft < 1){
+    console.debug("No tries left, giving up on checking assemblyUrl: %s", assemblyUrl);
     return;
   }
   if(triesLeft === undefined){
@@ -31,13 +36,16 @@ function pollAssembly(assemblyUrl, triesLeft){
   setTimeout(function(){
     checkAssembly(assemblyUrl, function(err, response){
       if(!response){
-        pollAssembly(assemblyUrl, --triesLeft);
+        --triesLeft;
+        console.debug("%s not completed, checking again, %s tries left.", assemblyUrl, triesLeft);
+        pollAssembly(assemblyUrl, triesLeft);
       }
       else{
+        console.debug("%s valid response, notifying.", assemblyUrl)
         notify(response);
       }
     });
-  }, 1000);
+  }, configuration.pollInterval);
 }
 
 function checkAssembly(assemblyUrl, callback){
@@ -45,9 +53,11 @@ function checkAssembly(assemblyUrl, callback){
     var response = JSON.parse(body);
     if(response.ok){
       if(response.ok == 'ASSEMBLY_COMPLETED'){
+        console.debug('%s completed.', assemblyUrl)
         callback(null, response);
       }
       if(response.ok == 'ASSEMBLY_EXECUTING'){
+        console.debug('%s still executing.', assemblyUrl)
         callback(null);
       }
     }
